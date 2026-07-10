@@ -1,0 +1,1072 @@
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+
+  /* ── Variables del tema (nuestras) ───────────────────────────────────────
+     Tema claro por defecto; tema oscuro al añadir la clase .dark al <body>. */
+  body {
+    --bg: #f4f2ea;          /* fondo del árbol */
+    --fg: #2c2c2a;          /* texto de las tarjetas */
+    --line: #333333;        /* líneas de parentesco */
+    --circle-bg: #e6e3da;   /* relleno del círculo sin foto */
+    /* Color de ACCIÓN principal = TEAL (verde azulado). El azul y el rosa quedan
+       reservados EN EXCLUSIVA para indicar sexo (aros, fechas, cabeceras, filetes),
+       así el botón de acción no se confunde con "masculino". */
+    --accent: #0f857d;            /* teal (claro) */
+    --accent-hover: #0b6b64;
+    --accent-ring: rgba(15, 133, 125, 0.26);
+    --male: #3b93d6;        /* aro/fechas hombre */
+    --female: #d06b91;      /* aro/fechas mujer */
+    /* Tarjeta de título: pintada al CONTRASTE del fondo (fondo oscuro en tema claro) */
+    --title-bg: #1e1f22; --title-fg: #f4f2ea; --title-sub: #b9b7b0;
+  }
+  body.dark {
+    --bg: #1e1f22;
+    --fg: #e8e6df;
+    --line: #cfd2d8;
+    --circle-bg: #3a3b3f;
+    /* Teal algo más luminoso en oscuro para que resalte sobre el fondo. */
+    --accent: #148f84;
+    --accent-hover: #18a99c;
+    --accent-ring: rgba(20, 143, 132, 0.34);
+    /* En tema oscuro se invierte: tarjeta de título clara */
+    --title-bg: #f4f2ea; --title-fg: #1e1f22; --title-sub: #5f5e5a;
+  }
+
+  #FamilyChart { width: 100vw; height: 100vh; background: var(--bg); transition: background .25s; }
+  /* Mientras se cargan los datos desde la base de datos, se oculta el árbol para
+     no mostrar el nodo de arranque. visibility (no display) conserva el tamaño
+     del contenedor, que la librería necesita para encuadrar (treeFit). */
+  body.cargando-datos #FamilyChart { visibility: hidden; }
+  /* Hasta decidir si hay sesión, se oculta la interfaz (evita parpadeo antes del login). */
+  body.sesion-pendiente .toolbar,
+  body.sesion-pendiente .titlecard,
+  body.sesion-pendiente .buscador { display: none !important; }
+
+  /* ── Pantalla de acceso (login) ─────────────────────────────────────────── */
+  .login-overlay { position: fixed; inset: 0; z-index: 3000; display: flex; align-items: center;
+    justify-content: center; background: var(--bg); padding: 1rem; }
+  .login-overlay[hidden] { display: none; }
+  .login-caja { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: .7rem;
+    background: #fff; color: #23262b; border-radius: 16px; padding: 1.6rem 1.5rem 1.8rem;
+    box-shadow: 0 12px 40px rgba(0,0,0,.18); }
+  body.dark .login-caja { background: #2a2b2f; color: #e7e7ea; box-shadow: 0 12px 40px rgba(0,0,0,.5); }
+  .login-leaf { width: 34px; height: 34px; align-self: center; }
+  .login-caja h1 { font-size: 1.25rem; margin: 0; text-align: center; }
+  .login-sub { margin: 0 0 .4rem; text-align: center; opacity: .7; font-size: .9rem; }
+  .login-campo { display: flex; flex-direction: column; gap: .25rem; font-size: .82rem; font-weight: 600; }
+  .login-campo input { font: inherit; font-weight: 400; padding: .5rem .6rem; border: 1px solid #ccc;
+    border-radius: 8px; background: #fff; color: inherit; }
+  body.dark .login-campo input { background: #1f2024; border-color: #44464c; }
+  .login-anio-check { font-size: .82rem; display: flex; align-items: center; gap: .4rem; opacity: .85; }
+  .login-error { color: #cf222e; font-size: .82rem; min-height: 1em; text-align: center; }
+  #loginEntrar { font: inherit; font-weight: 600; padding: .6rem; border: none; border-radius: 8px;
+    cursor: pointer; background: var(--accent); color: #fff; margin-top: .3rem; }
+  #loginEntrar:hover:not(:disabled) { background: var(--accent-hover); }
+  #loginEntrar:disabled { opacity: .6; cursor: default; }
+  /* Botón de la pantalla "aún no instalado" (mismo tono que Entrar: teal de marca). */
+  .btn-instalar { display: inline-block; text-align: center; text-decoration: none; font-weight: 600;
+    padding: .6rem 1rem; border-radius: 8px; background: var(--accent); color: #fff; margin-top: .5rem; }
+  .btn-instalar:hover { background: var(--accent-hover); }
+  /* "Seguir viendo sin acceder": botón secundario neutro bajo "Entrar" (solo en
+     árbol abierto; se muestra/oculta desde JS). */
+  .login-cancelar { font: inherit; font-size: .9rem; padding: .5rem; border-radius: 8px; cursor: pointer;
+    background: rgba(128,128,128,.14); color: inherit; border: 1px solid rgba(128,128,128,.3); }
+  .login-cancelar:hover { background: rgba(128,128,128,.24); }
+  .login-cancelar[hidden] { display: none; }
+
+  /* ── "Acceder para administrar" (árbol ABIERTO, visitante sin sesión) ───────
+     La LLAVE ocupa EL MISMO hueco que el lápiz de "Editar árbol": es un .fab más
+     de la botonera, colocado justo tras el lápiz. En modo abierto anónimo el rol
+     es de lectura → el lápiz queda oculto (body.dispositivo-lectura #btnEditar) y
+     en su lugar aparece esta llave. Se distingue con RELLENO teal (puerta de
+     entrada del admin). El nombre va en el tooltip (title), como los demás fabs.
+     El .fab ya garantiza 46×46 (táctil ≥44px). Ambos temas. */
+  /* Oculta salvo en modo abierto anónimo. Especificidad (0,2,0) para ganar a la
+     regla base .fab { display:flex }, que aparece más abajo en el archivo. */
+  .toolbar .fab-acceder { display: none; }
+  body.modo-abierto-anon .fab-acceder {
+    display: flex;
+    background: var(--accent); color: #fff; border-color: var(--accent);
+  }
+  body.modo-abierto-anon .fab-acceder:hover {
+    background: var(--accent-hover); border-color: var(--accent-hover);
+  }
+  body.modo-abierto-anon .fab-acceder:focus-visible {
+    outline: none; box-shadow: 0 0 0 3px var(--accent-ring);
+  }
+  /* En modo abierto anónimo no hay sesión que cerrar: se oculta "Salir". */
+  body.modo-abierto-anon #btnSalir { display: none; }
+
+  /* ── Papelera (modal) ───────────────────────────────────────────────────── */
+  .papelera-overlay { position: fixed; inset: 0; z-index: 2500; display: flex; align-items: center;
+    justify-content: center; background: rgba(0,0,0,.45); padding: 1rem; }
+  .papelera-overlay[hidden] { display: none; }
+  .papelera-caja { width: 100%; max-width: 520px; max-height: 82vh; display: flex; flex-direction: column;
+    background: #fff; color: #23262b; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.25); overflow: hidden; }
+  body.dark .papelera-caja { background: #2a2b2f; color: #e7e7ea; }
+  .papelera-cab { display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    padding: 1rem 1.2rem; border-bottom: 1px solid #eceae4; }
+  body.dark .papelera-cab { border-color: #3a3b40; }
+  .papelera-cab h2 { margin: 0; font-size: 1.15rem; }
+  .papelera-cab-btns { display: flex; align-items: center; gap: .5rem; }
+  .papelera-vaciar { font: inherit; font-size: .8rem; padding: .35rem .7rem; border: 1px solid #cf222e;
+    color: #cf222e; background: transparent; border-radius: 8px; cursor: pointer; }
+  .papelera-cerrar { font-size: 1.4rem; line-height: 1; background: none; border: none; cursor: pointer;
+    color: inherit; opacity: .6; padding: 0 .2rem; }
+  .papelera-lista { overflow-y: auto; padding: .6rem .8rem 1rem; }
+  .papelera-vacia { text-align: center; opacity: .6; padding: 2rem 1rem; }
+  .papelera-item { display: flex; align-items: center; gap: .8rem; padding: .6rem .4rem;
+    border-top: 1px solid #eceae4; }
+  body.dark .papelera-item { border-color: #3a3b40; }
+  .papelera-item:first-child { border-top: none; }
+  .papelera-circ { flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%; overflow: hidden;
+    background: var(--circle-bg, #e6e3da); display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--male); }
+  .papelera-item.female .papelera-circ { border-color: var(--female); }
+  .papelera-circ img { width: 100%; height: 100%; object-fit: cover; }
+  .papelera-circ svg { width: 60%; height: 60%; fill: #9a9a9a; }
+  .papelera-info { flex: 1 1 auto; min-width: 0; }
+  .papelera-nombre { font-weight: 600; }
+  .papelera-datos { font-size: .8rem; opacity: .7; }
+  .papelera-acciones { flex: 0 0 auto; display: flex; gap: .4rem; }
+  .papelera-acciones button { font: inherit; font-size: .8rem; padding: .35rem .6rem; border-radius: 8px;
+    cursor: pointer; border: 1px solid transparent; }
+  .papelera-restaurar { background: #2ea043; color: #fff; }
+  .papelera-eliminar { background: transparent; color: #cf222e; border-color: #cf222e; }
+  @media (max-width: 560px) {
+    .papelera-item { flex-wrap: wrap; }
+    .papelera-acciones { width: 100%; justify-content: flex-end; }
+  }
+
+  /* ── Copias de seguridad (modal) — mismo lenguaje visual que la papelera ─── */
+  .copias-overlay { position: fixed; inset: 0; z-index: 2500; display: flex; align-items: center;
+    justify-content: center; background: rgba(0,0,0,.45); padding: 1rem; }
+  .copias-overlay[hidden] { display: none; }
+  .copias-caja { width: 100%; max-width: 560px; max-height: 82vh; display: flex; flex-direction: column;
+    background: #fff; color: #23262b; border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,.25); overflow: hidden; }
+  body.dark .copias-caja { background: #2a2b2f; color: #e7e7ea; }
+  .copias-cab { display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    padding: 1rem 1.2rem; border-bottom: 1px solid #eceae4; }
+  body.dark .copias-cab { border-color: #3a3b40; }
+  .copias-cab h2 { margin: 0; font-size: 1.15rem; }
+  .copias-cab-btns { display: flex; align-items: center; gap: .5rem; }
+  .copias-generar { font: inherit; font-size: .82rem; padding: .4rem .8rem; border: none;
+    background: var(--accent); color: #fff; border-radius: 8px; cursor: pointer; }
+  .copias-generar:hover { background: var(--accent-hover); }
+  .copias-cerrar { font-size: 1.4rem; line-height: 1; background: none; border: none; cursor: pointer;
+    color: inherit; opacity: .6; padding: 0 .2rem; }
+  .copias-lista { overflow-y: auto; padding: .6rem .8rem .8rem; }
+  .copias-vacia { text-align: center; opacity: .6; padding: 2rem 1rem; }
+  .copias-item { display: flex; align-items: center; gap: .8rem; padding: .7rem .4rem;
+    border-top: 1px solid #eceae4; }
+  body.dark .copias-item { border-color: #3a3b40; }
+  .copias-item:first-child { border-top: none; }
+  .copias-info { flex: 1 1 auto; min-width: 0; }
+  .copias-fecha { font-weight: 600; }
+  .copias-tag { font-weight: 500; font-size: .7rem; text-transform: uppercase; letter-spacing: .3px;
+    background: rgba(224,149,78,.18); color: #b06a1e; padding: .1rem .4rem; border-radius: 6px; margin-left: .3rem; }
+  body.dark .copias-tag { color: #e2a663; }
+  .copias-datos { font-size: .8rem; opacity: .7; }
+  .copias-acciones { flex: 0 0 auto; display: flex; gap: .4rem; }
+  .copias-acciones button { font: inherit; font-size: .8rem; padding: .35rem .6rem; border-radius: 8px;
+    cursor: pointer; border: 1px solid transparent; background: rgba(128,128,128,.14); color: inherit; }
+  .copias-acciones button:hover { background: rgba(128,128,128,.24); }
+  .copias-restaurar { background: #2ea043 !important; color: #fff; }
+  .copias-eliminar { background: transparent !important; color: #cf222e; border-color: #cf222e !important; }
+  .copias-acciones button:disabled { opacity: .5; cursor: default; }
+  .copias-subir { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap;
+    padding: .9rem 1.2rem; border-top: 1px solid #eceae4; background: rgba(128,128,128,.05); }
+  body.dark .copias-subir { border-color: #3a3b40; }
+  .copias-subir-txt { font-size: .85rem; opacity: .75; }
+  .copias-subir-btn { font: inherit; font-size: .82rem; padding: .4rem .8rem; cursor: pointer;
+    background: transparent; color: var(--text-color); border: 1px solid rgba(128,128,128,.5); border-radius: 8px; }
+  .copias-subir-btn:hover { background: rgba(128,128,128,.15); }
+  @media (max-width: 560px) {
+    .copias-item { flex-wrap: wrap; }
+    .copias-acciones { width: 100%; justify-content: flex-end; }
+  }
+  /* Gestos táctiles: que el navegador no robe el arrastre/pellizco; d3-zoom (que
+     usa la librería) gestiona pan con un dedo y zoom con dos. */
+  #FamilyChart, #FamilyChart #f3Canvas { touch-action: none; }
+
+  /* Huecos "Añadir X" (tarjetas placeholder de la librería): usan su variable
+     --background-color para el fondo. La redefinimos por tema EN EL ÁRBOL para
+     que sigan el tema (clara en claro, oscura en oscuro). El formulario redefine
+     esa misma variable en su propio contenedor, así que no se ven afectados. */
+  #FamilyChart { --background-color: #ece9e1; }
+  body.dark #FamilyChart { --background-color: #2a2b2f; }
+
+  /* Líneas de parentesco: la librería las pinta con stroke="#fff" fijo (atributo
+     de presentación, sin API de color). Una regla CSS sobre su clase oficial
+     .link gana al atributo (sin !important) y las hace seguir el tema. */
+  #FamilyChart .link { stroke: var(--line); }
+
+  /* ── Tarjetas circulares (interior propio vía setCardInnerHtmlCreator) ────
+     Sustituimos el interior de la tarjeta oficial: círculo con foto o muñequito,
+     aro por sexo, y debajo texto suelto (sin píldora gris). El color del texto
+     usa --fg para seguir siendo legible en claro y oscuro. */
+  #FamilyChart .fcard { display: flex; flex-direction: column; align-items: center; width: 150px; }
+  #FamilyChart .fc-circle {
+    width: 76px; height: 76px; border-radius: 50%;
+    background: var(--circle-bg) center / cover no-repeat;
+    border: 3px solid var(--accent);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.18);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  #FamilyChart .fcard.male   .fc-circle { border-color: var(--male); }
+  #FamilyChart .fcard.female .fc-circle { border-color: var(--female); }
+  #FamilyChart .fc-foto { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+  #FamilyChart .fc-circle svg { width: 58%; height: 58%; }
+  #FamilyChart .fcard.male   .fc-circle svg { fill: var(--male); }
+  #FamilyChart .fcard.female .fc-circle svg { fill: var(--female); }
+  #FamilyChart .fc-txt { text-align: center; margin-top: 7px; line-height: 1.25; }
+  #FamilyChart .fc-nombre { font-size: 13.5px; font-weight: 700; color: var(--fg); }
+  #FamilyChart .fc-edad { font-size: 10.5px; color: var(--fg); opacity: .55; margin-top: 1px; }
+  #FamilyChart .fc-fechas { font-size: 11.5px; margin-top: 1px; }
+  #FamilyChart .fcard.male   .fc-fechas { color: var(--male); }
+  #FamilyChart .fcard.female .fc-fechas { color: var(--female); }
+
+  /* ── Formulario del editor: sigue el tema ────────────────────────────────
+     La librería estiliza el formulario con SUS variables --background-color y
+     --text-color. Las redefinimos SOLO en el contenedor del formulario según
+     el tema; así el árbol y las tarjetas no se ven afectados. */
+  .f3-form-cont {
+    --background-color: #ffffff;   /* claro: panel blanco, texto oscuro */
+    --text-color: #2c2c2a;
+    color: var(--text-color);
+    box-shadow: -4px 0 24px rgba(0, 0, 0, 0.18);
+  }
+  body.dark .f3-form-cont {
+    --background-color: #2a2b2f;   /* oscuro: panel oscuro, texto claro */
+    --text-color: #e8e6df;
+  }
+  .f3-form { padding: 22px 20px; }
+  .f3-form-title { color: var(--text-color); font-size: 16px; margin: 0 0 14px; }
+
+  /* Cada campo (label + input) claramente separado */
+  .f3-form .f3-form-field { margin-bottom: 14px; }
+  .f3-form .f3-form-field label {
+    color: var(--text-color); opacity: .65;
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px;
+  }
+  .f3-form input[type="text"], .f3-form textarea {
+    background: var(--background-color); color: var(--text-color);
+    border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 6px; margin: 5px 0 0;
+  }
+  .f3-form input[type="text"]:focus, .f3-form textarea:focus, .f3-form input[type="date"]:focus {
+    border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring);
+  }
+  .f3-form input[type="text"]::placeholder, .f3-form textarea::placeholder {
+    color: var(--text-color); opacity: .45;
+  }
+  /* Campo de fecha exacta (input type=date) según el tema */
+  .f3-form input[type="date"] {
+    width: 100%; padding: 8px 12px; margin: 5px 0 0; border-radius: 6px;
+    background: var(--background-color); color: var(--text-color);
+    border: 1px solid rgba(128, 128, 128, 0.4);
+  }
+  .f3-form input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+
+  /* Controles propios inyectados en el formulario (foto por archivo, año/fecha) */
+  .foto-control { display: flex; align-items: center; gap: 12px; margin: 6px 0 4px; }
+  .foto-prev {
+    width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0;
+    background: transparent center / cover no-repeat;
+    border: 2px dashed rgba(128, 128, 128, 0.5);
+  }
+  .foto-prev.con-foto { border-style: solid; border-color: var(--accent); }
+  .foto-botones { display: flex; flex-direction: column; gap: 6px; }
+  .foto-btn { background: var(--accent); color: #fff; border: none; border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  .foto-btn:hover { background: var(--accent-hover); }
+  .foto-quitar { background: transparent; color: var(--text-color); opacity: .7; border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+  .fecha-toggle { display: flex; margin: 5px 0 0; }
+  .fecha-toggle button {
+    flex: 1; background: transparent; color: var(--text-color); opacity: .8;
+    border: 1px solid rgba(128, 128, 128, 0.4); padding: 6px; font-size: 12px; cursor: pointer;
+  }
+  .fecha-toggle button:first-child { border-radius: 6px 0 0 6px; }
+  .fecha-toggle button:last-child { border-radius: 0 6px 6px 0; border-left: none; }
+  .fecha-toggle button.activo { background: var(--accent); color: #fff; border-color: var(--accent); opacity: 1; }
+
+  /* Selector de sexo y botones legibles en ambos temas */
+  .f3-radio-group { margin: 4px 0 16px; }
+  .f3-radio-group label { color: var(--text-color); }
+  .f3-form button[type="submit"] { background: var(--accent); color: #fff; }
+  .f3-form button[type="submit"]:hover { background: var(--accent-hover); }
+  .f3-cancel-btn { background: rgba(128, 128, 128, 0.25); color: var(--text-color); }
+  /* Botón "Eliminar" DESHABILITADO (persona que quedaría anónima): gris y no
+     pulsable, con la nota explicativa debajo. */
+  .f3-delete-btn:disabled {
+    opacity: .45; cursor: not-allowed; filter: grayscale(0.4);
+  }
+  .f3-delete-nota {
+    margin: 8px 2px 0; font-size: 12px; line-height: 1.45;
+    color: var(--text-color); opacity: .7;
+  }
+  .f3-delete-nota strong { opacity: 1; }
+
+  /* ── Validación en vivo del formulario (campos obligatorios + fechas) ──────
+     Rojo coherente en claro y oscuro. Marca el campo (borde rojo) y muestra un
+     mensaje debajo. El asterisco señala los obligatorios (Nombre, Sexo). */
+  .oblig-ast { color: #cf222e; font-weight: 700; margin-left: 2px; }
+  body.dark .oblig-ast { color: #ff6b61; }
+  .campo-error-msg { margin: 5px 2px 0; font-size: 12px; line-height: 1.35; color: #cf222e; }
+  body.dark .campo-error-msg { color: #ff6b61; }
+  .f3-form .f3-form-field.campo-error input,
+  .f3-form .f3-form-field.campo-error textarea {
+    border-color: #cf222e !important;
+    box-shadow: 0 0 0 2px rgba(207, 34, 46, 0.18);
+  }
+  body.dark .f3-form .f3-form-field.campo-error input,
+  body.dark .f3-form .f3-form-field.campo-error textarea {
+    border-color: #ff6b61 !important;
+    box-shadow: 0 0 0 2px rgba(255, 107, 97, 0.22);
+  }
+  /* Campo de SEXO (grupo de radios) envuelto como un campo más. */
+  .f3-form .campo-sexo { margin: 10px 0; }
+  .f3-form .campo-sexo .f3-sexo-label {
+    display: block; font-size: 13px; margin-bottom: 4px; color: var(--text-color);
+  }
+  .f3-form .campo-sexo.campo-error .f3-radio-group {
+    outline: 2px solid #cf222e; outline-offset: 2px; border-radius: 6px;
+  }
+  body.dark .f3-form .campo-sexo.campo-error .f3-radio-group { outline-color: #ff6b61; }
+
+  /* Sección "Separar pareja" (propia) dentro de la ficha */
+  .separar-pareja { margin-top: 10px; }
+  .separar-pareja .separar-hdr {
+    color: var(--text-color); opacity: .65;
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; margin-bottom: 6px;
+  }
+  .separar-fila { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .separar-fila span { color: var(--text-color); font-size: 13.5px; }
+  /* Botón "Separar": misma tipografía/apariencia que el resto de botones del
+     formulario. Se escopa bajo .separar-pareja para GANAR en especificidad a la
+     regla de la librería (.f3-form button { border:none; padding:10px 20px }),
+     que si no anularía el borde/padding y lo dejaría como texto plano. */
+  .separar-pareja .separar-btn {
+    font-family: inherit; font-size: 14px; line-height: 1.2;
+    background: transparent; color: var(--text-color);
+    border: 1px solid rgba(128, 128, 128, 0.5); border-radius: 4px;
+    padding: 6px 14px; margin: 0; width: auto;
+    cursor: pointer;
+    transition: background-color .2s, border-color .2s, color .2s;
+  }
+  .separar-pareja .separar-btn:hover { background: rgba(128, 128, 128, 0.15); border-color: rgba(128, 128, 128, 0.75); }
+
+  /* ── FASE D-a: formulario de EDICIÓN como tarjeta flotante CENTRADA ──────────
+     Gate por clase: solo cuando body.form-edicion-modal (hay un formulario
+     EDITABLE abierto). SIN fondo oscuro: el contenedor no captura clics
+     (pointer-events:none), solo la tarjeta; así se puede interactuar con el árbol
+     igual que con el panel lateral. En FASE A de "añadir familiar"
+     (body.anadiendo-familiar) la tarjeta se OCULTA para ver y pulsar los huecos.
+     Solo escritorio (en móvil no hay edición). Quitar la clase = panel lateral. */
+  body.form-edicion-modal .f3-form-cont {
+    position: fixed; inset: 0; width: auto;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; background: transparent; box-shadow: none; z-index: 50;
+    pointer-events: none;                 /* clics fuera de la tarjeta pasan al árbol */
+  }
+  body.form-edicion-modal .f3-form-cont .f3-form {
+    pointer-events: auto;                 /* la tarjeta sí captura clics */
+    width: 400px; max-width: 100%; height: min(720px, 82vh); overflow-y: auto;
+    background: var(--background-color); color: var(--text-color);
+    border-radius: 18px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    position: relative; flex: 0 0 auto;
+  }
+  /* FASE A: ocultar la tarjeta centrada para no tapar los huecos del árbol. */
+  body.form-edicion-modal.anadiendo-familiar .f3-form-cont { display: none; }
+
+  /* Rótulo flotante durante la FASE A ("elige dónde añadir el familiar"). */
+  .anadir-hint {
+    display: none; position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%);
+    z-index: 60; align-items: center; gap: 12px;
+    background: var(--bg); color: var(--fg);
+    border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22); padding: 8px 8px 8px 16px; font-size: 14px;
+  }
+  body.anadiendo-familiar .anadir-hint { display: flex; }
+  .anadir-hint-cancelar {
+    font: inherit; font-size: 13px; padding: 7px 12px; border-radius: 8px; cursor: pointer;
+    background: rgba(128, 128, 128, 0.16); color: var(--fg); border: 1px solid rgba(128, 128, 128, 0.4);
+  }
+  .anadir-hint-cancelar:hover { background: rgba(128, 128, 128, 0.28); }
+
+  /* ── FASE D-b: secciones del formulario de EDICIÓN (todo visible, sin acordeón) ──
+     Mismo lenguaje que la ficha y el panel: tarjeta con cabecera. Cabeceras
+     NEUTRAS (el azul/rosa es solo para el sexo, que aquí se edita; el teal, solo
+     para acciones). Coherente en claro y oscuro. */
+  .f3-form .form-secciones { margin-top: 2px; }
+  /* TODAS las secciones comparten el MISMO fondo teal (el de "Añadir familiar"),
+     para un formulario visualmente uniforme. La sección de acción se distingue por
+     su BOTÓN teal relleno, no por el marco. Tinte suave (8%) para que los campos
+     (inputs con su propio fondo) y los textos sigan legibles en claro y oscuro. */
+  .f3-form .form-seccion {
+    margin-bottom: 12px; border-radius: 12px; overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+  }
+  .f3-form .form-seccion-hdr {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 13px; font-size: 12px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+    color: var(--accent); opacity: 1;
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  }
+  .f3-form .form-seccion-hdr svg { width: 16px; height: 16px; fill: currentColor; flex: 0 0 auto; opacity: .9; }
+  .f3-form .form-seccion-body { padding: 13px 14px 3px; }
+  .f3-form .form-seccion-body .f3-form-field { margin-bottom: 12px; }
+
+  /* "Añadir familiar": misma tarjeta teal que las demás (el marco ya es teal en
+     .form-seccion); se distingue por su BOTÓN teal relleno. El botón es el
+     <span.f3-add-relative-btn> NATIVO reestilizado; anulamos su tamaño nativo
+     (27×27, margin, inline-block) para que sea un botón de acción a ancho completo.
+     Táctil (≥44px). Coherente en claro y oscuro (usa --accent). */
+  .f3-form .form-seccion.seccion-anadir .form-seccion-body { padding: 13px 14px; }
+  .f3-form .add-familiar-accion {
+    display: flex; align-items: center; justify-content: center; gap: 9px;
+    width: 100%; height: auto; box-sizing: border-box; margin: 0;   /* anula 27×27 + margin nativos */
+    padding: 11px 14px; min-height: 44px;                           /* táctil */
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 10px; cursor: pointer;
+    font: inherit; font-size: 15px; font-weight: 600; line-height: 1.15;
+  }
+  .f3-form .add-familiar-accion:hover { background: var(--accent-hover); }
+  .f3-form .add-familiar-accion:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+  .f3-form .add-familiar-accion svg { width: 20px; height: 20px; fill: currentColor; flex: 0 0 auto; }
+
+  /* ── Ficha de LECTURA como MODAL flotante (SOLO modo lectura) ────────────
+     Solo aplica cuando el formulario es .non-editable (lectura). El formulario
+     de EDICIÓN no lo es, así que conserva intacto su panel lateral.
+     Truco de presentación: el propio .f3-form-cont se convierte en el backdrop
+     (oscurece el fondo) y el .f3-form pasa a ser la tarjeta flotante centrada. */
+  body.ficha-modal .f3-form-cont {
+    position: fixed; inset: 0; width: auto;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px; background: rgba(0, 0, 0, 0.45); box-shadow: none; z-index: 50;
+  }
+  body.ficha-modal .f3-form-cont .f3-form {
+    /* Altura FIJA y estable (mismo patrón que el panel): la ventana NO salta al
+       abrir/cerrar secciones del acordeón; si el contenido excede, hace scroll
+       interno. Cómoda para que con todo cerrado no quede un hueco enorme y con
+       secciones abiertas quepa bien. En móvil se sobreescribe a pantalla completa. */
+    width: 400px; max-width: 100%; height: min(720px, 74vh); overflow-y: auto;
+    background: var(--background-color); color: var(--text-color);
+    border-radius: 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+    padding: 0 0 8px; position: relative; flex: 0 0 auto;
+  }
+  /* Icono NATIVO sobrante junto al muñequito de "añadir familiar": el lápiz de
+     edición de la librería (.f3-edit-btn). No lo usamos (el modo edición se
+     gestiona con nuestro propio toggle "Editar árbol"), así que lo ocultamos. NO
+     afecta a .f3-add-relative-btn, que sigue funcionando igual. */
+  .f3-form-cont .f3-edit-btn { display: none; }
+
+  /* X de cerrar (nativa, arriba a la izquierda) SOBRA en EDICIÓN: abajo ya está
+     "Cancelar", que cierra el formulario y sale del modo "añadir familiar". La
+     ocultamos SOLO en edición (el modo LECTURA la reutiliza como × redondo de la
+     esquina, más abajo). Es position:absolute, así que no deja hueco. El cierre y
+     la coreografía no dependen de ella (Cancelar / clic fuera / Escape siguen). */
+  .f3-form:not(.non-editable) .f3-close-btn { display: none; }
+
+  /* Ocultamos el render por defecto (lista cruda con campos vacíos) */
+  .f3-form.non-editable .f3-radio-group,
+  .f3-form.non-editable .f3-info-field,
+  .f3-form.non-editable > hr { display: none; }
+  /* Botón cerrar (reutilizamos el × nativo) como botón redondo en la esquina */
+  .f3-form.non-editable .f3-close-btn {
+    position: absolute; top: 12px; right: 14px; left: auto; z-index: 2;
+    width: 34px; height: 34px; line-height: 32px; text-align: center;
+    border-radius: 50%; font-size: 22px; cursor: pointer; color: var(--text-color);
+    background: rgba(128, 128, 128, 0.14); transition: background .15s;
+  }
+  .f3-form.non-editable .f3-close-btn:hover { background: rgba(128, 128, 128, 0.28); }
+
+  /* Cabecera: círculo grande + nombre + subtítulo (edad). Sin línea divisoria: la
+     transición a la primera sección del acordeón queda limpia. */
+  .ficha-lectura .fl-header {
+    text-align: center; padding: 32px 28px 18px;
+  }
+  .ficha-lectura .fl-circle {
+    width: 116px; height: 116px; border-radius: 50%; margin: 0 auto 14px;
+    background: var(--circle-bg) center / cover no-repeat;
+    border: 4px solid var(--accent);
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  }
+  .ficha-lectura.male   .fl-circle { border-color: var(--male); }
+  .ficha-lectura.female .fl-circle { border-color: var(--female); }
+  .ficha-lectura .fl-circle svg { width: 56%; height: 56%; }
+  .ficha-lectura.male   .fl-circle svg { fill: var(--male); }
+  .ficha-lectura.female .fl-circle svg { fill: var(--female); }
+  .ficha-lectura .fl-foto { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block; }
+  .ficha-lectura .fl-nombre { font-size: 22px; font-weight: 700; line-height: 1.2; color: var(--text-color); }
+  /* Edad: más grande y con presencia, en el color del aro por sexo */
+  .ficha-lectura .fl-sub { font-size: 16px; font-weight: 600; margin-top: 9px; }
+  .ficha-lectura.male   .fl-sub { color: var(--male); }
+  .ficha-lectura.female .fl-sub { color: var(--female); }
+
+  /* Bloques diferenciados. Jerarquía tipográfica:
+     nombre > edad > TÍTULO de sección (color por sexo, negrita) >
+     subapartado (color normal, negrita, algo menor) > valor (normal). */
+  /* ── Secciones de la ficha como TARJETAS (mismo lenguaje que el panel) ───────
+     Cada bloque (Nacimiento · Datos · Familia) es una tarjeta con borde redondeado
+     y una CABECERA de barra: icono + título en el color del sexo sobre un leve
+     tinte de ese mismo color. En MÓVIL/TABLET estas tarjetas funcionan además como
+     ACORDEÓN (más abajo). */
+  .ficha-lectura { padding: 6px 0 12px; }
+  .ficha-lectura .fl-grupo {
+    margin: 0 22px 12px; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(128, 128, 128, 0.22);
+    background: color-mix(in srgb, var(--text-color) 3%, transparent);
+  }
+  .ficha-lectura .fl-grupo:last-child { margin-bottom: 4px; }
+  /* Cabecera de sección: barra con tinte del color del sexo. */
+  .ficha-lectura .fl-grupo-hdr {
+    display: flex; align-items: center; gap: 9px;
+    padding: 12px 15px; font-size: 14px; font-weight: 700; line-height: 1.2; letter-spacing: .2px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.16);
+    transition: background .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .ficha-lectura.male   .fl-grupo-hdr { color: var(--male);   background: color-mix(in srgb, var(--male) 10%, transparent); }
+  .ficha-lectura.female .fl-grupo-hdr { color: var(--female); background: color-mix(in srgb, var(--female) 10%, transparent); }
+  .ficha-lectura .fl-grupo-hdr svg { width: 17px; height: 17px; flex-shrink: 0; fill: currentColor; }
+  .ficha-lectura .fl-grupo-tit { flex: 1 1 auto; }
+  /* Cuerpo de la sección. */
+  .ficha-lectura .fl-grupo-inner { padding: 15px 16px; }
+  .ficha-lectura .fl-campo { margin-bottom: 14px; }
+  .ficha-lectura .fl-campo:last-child { margin-bottom: 0; }
+  /* Subapartado: negrita, color del tema. */
+  .ficha-lectura .fl-et {
+    display: block; font-size: 13px; font-weight: 700; color: var(--text-color);
+    margin-bottom: 2px;
+  }
+  /* Valor: peso normal */
+  .ficha-lectura .fl-val { display: block; font-size: 15px; font-weight: 400; line-height: 1.45; color: var(--text-color); opacity: .85; white-space: pre-wrap; }
+
+  /* ── Acordeón de la ficha — ESCRITORIO y MÓVIL por igual (pulcro, a medida) ──
+     Todas las secciones arrancan PLEGADAS (la clase .plegado la pone ficha.js al
+     construir) y se abren al pulsar la cabecera. Flecha (chevron trazado) que ROTA,
+     cuerpo con transición suave (grid 0fr↔1fr + padding, sin saltos), y sección
+     ABIERTA destacada con el tinte del sexo mientras las cerradas van en neutro. */
+  .ficha-lectura .fl-grupo-hdr { cursor: pointer; user-select: none; }
+  .ficha-lectura .fl-grupo.plegado .fl-grupo-hdr {
+    color: var(--text-color); border-bottom-color: transparent;
+    background: color-mix(in srgb, var(--text-color) 5%, transparent);
+  }
+  /* Chevron trazado: abierto apunta ARRIBA, cerrado apunta ABAJO. */
+  .ficha-lectura .fl-chevron {
+    display: inline-block; flex: 0 0 auto; width: 8px; height: 8px; margin-left: 4px;
+    border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+    transform: rotate(-135deg); opacity: .7;
+    transition: transform .25s ease;
+  }
+  .ficha-lectura .fl-grupo.plegado .fl-chevron { transform: rotate(45deg); }
+  /* Despliegue/plegado suave (grid): el cuerpo pasa de 1fr a 0fr. */
+  .ficha-lectura .fl-grupo-body {
+    display: grid; grid-template-rows: 1fr; transition: grid-template-rows .28s ease;
+  }
+  .ficha-lectura .fl-grupo.plegado .fl-grupo-body { grid-template-rows: 0fr; }
+  /* El cuerpo colapsa por el grid; además animamos su padding vertical a 0 para que
+     al plegar quede en altura CERO (si no, quedaría el hueco del padding). */
+  .ficha-lectura .fl-grupo-inner {
+    overflow: hidden; min-height: 0;
+    transition: padding-top .28s ease, padding-bottom .28s ease;
+  }
+  .ficha-lectura .fl-grupo.plegado .fl-grupo-inner { padding-top: 0; padding-bottom: 0; }
+
+  /* ── Subsecciones del bloque "Familia" (directa/ascendientes/descendientes/
+     colaterales/política). Cabecera pequeña en mayúsculas y, para que TODA la
+     sección se vea coherente, un filete de color a la izquierda en el color del
+     sexo en cada subsección. */
+  .ficha-lectura .fl-subsec {
+    margin-top: 16px; padding-left: 12px;
+    border-left: 2px solid rgba(128, 128, 128, 0.3);
+  }
+  .ficha-lectura .fl-subsec:first-of-type { margin-top: 4px; }
+  .ficha-lectura.male   .fl-subsec { border-left-color: color-mix(in srgb, var(--male) 50%, transparent); }
+  .ficha-lectura.female .fl-subsec { border-left-color: color-mix(in srgb, var(--female) 50%, transparent); }
+  .ficha-lectura .fl-subsec-hdr {
+    font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase;
+    opacity: .55; color: var(--text-color); margin-bottom: 10px;
+  }
+  /* "Política" (afinidad): mismo tratamiento; se distingue por su cabecera y por
+     un filete algo más marcado. */
+  .ficha-lectura .fl-subsec--politica .fl-subsec-hdr { opacity: .7; }
+  .ficha-lectura.male   .fl-subsec--politica { border-left-color: color-mix(in srgb, var(--male) 75%, transparent); }
+  .ficha-lectura.female .fl-subsec--politica { border-left-color: color-mix(in srgb, var(--female) 75%, transparent); }
+
+  /* Móvil / tablet: la ficha ocupa toda la pantalla. La tarjeta se fija a inset:0
+     (no depende del centrado flex), así llena el viewport de forma fiable. */
+  @media (max-width: 600px) {
+    body.ficha-modal .f3-form-cont { padding: 0; }
+    body.ficha-modal .f3-form-cont .f3-form {
+      position: fixed; inset: 0; margin: 0;
+      width: auto; max-width: none; height: auto; max-height: none;
+      border-radius: 0; overflow-y: auto;
+    }
+    .f3-form.non-editable .f3-close-btn {
+      width: 44px; height: 44px; line-height: 42px; font-size: 26px; top: 14px; right: 14px;
+    }
+    .ficha-lectura .fl-header { padding-top: 44px; }
+  }
+
+  /* ── Botones flotantes: CUADRADOS SOLO-ICONO ─────────────────────────────
+     Mismo lenguaje visual que los botones de arriba (lupa y "Volver al inicio"):
+     46×46, icono SVG centrado que sigue el tema (fill: currentColor), y el nombre
+     como tooltip (title). Sin texto en la barra. */
+  .fab {
+    width: 46px; height: 46px; padding: 0; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg); color: var(--line);
+    border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 12px;
+    cursor: pointer; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+    transition: background .2s, color .25s, border-color .2s;
+  }
+  .fab:hover { border-color: rgba(128, 128, 128, 0.75); background: rgba(128, 128, 128, 0.12); }
+  .fab .icono { display: flex; align-items: center; justify-content: center; }
+  .fab .icono svg { width: 21px; height: 21px; fill: currentColor; display: block; }
+  .fab .texto { display: none; }   /* la barra es solo-icono; el nombre va en el tooltip */
+
+  /* Barra de controles globales: CENTRADA abajo, como los botones de arriba. En
+     escritorio (edición): Tema · Editar árbol · Exportar árbol · Administración ·
+     Salir. En móvil/tablet (solo lectura): Tema · Exportar árbol · Salir. Al ser
+     todos cuadrados de 46px, la barra es compacta y cabe centrada incluso en
+     móviles estrechos; flex-wrap es una red de seguridad. */
+  .toolbar {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 30; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
+    max-width: calc(100vw - 24px);
+  }
+  #btnEditar.activo { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .solo-edicion { display: none; }             /* oculto en modo lectura */
+  body.editando .solo-edicion { display: flex; } /* visible en modo edición */
+
+  /* En MÓVIL / TABLET (solo lectura, ver dispositivo.js) la barra solo lleva los
+     iconos de lectura (Tema · Exportar árbol · Salir), con el mismo estilo. Los
+     46px de alto ya son objetivo táctil cómodo; solo la acercamos al borde. */
+  body.dispositivo-lectura .toolbar { bottom: 14px; }
+
+  /* Botón "Exportar árbol" con menú desplegable (PNG / PDF), hacia arriba. */
+  .fab-exportar-wrap { position: relative; display: inline-flex; }
+  .exportar-menu {
+    position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 8px);
+    display: none; flex-direction: column; gap: 3px; padding: 6px; min-width: 190px;
+    background: var(--bg); border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2); z-index: 40;
+  }
+  .fab-exportar-wrap.abierto .exportar-menu { display: flex; }
+  .exportar-menu button {
+    text-align: left; background: transparent; color: var(--fg); border: none;
+    padding: 9px 12px; border-radius: 7px; font-size: 14px; cursor: pointer;
+  }
+  .exportar-menu button:hover { background: rgba(128, 128, 128, 0.16); }
+
+  /* Velo mientras se genera la imagen (evita el parpadeo del reajuste). */
+  .export-overlay {
+    position: fixed; inset: 0; z-index: 200; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.35); color: #fff; font-size: 16px;
+  }
+  .export-overlay.visible { display: flex; }
+  .export-overlay .export-caja {
+    background: rgba(0, 0, 0, 0.6); padding: 16px 22px; border-radius: 12px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .export-overlay .export-spin {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.35); border-top-color: #fff;
+    animation: export-girar 0.8s linear infinite;
+  }
+  @keyframes export-girar { to { transform: rotate(360deg); } }
+
+  /* Deshacer / rehacer (historial nativo de la librería): lo integramos como un
+     grupo (pastilla) abajo-izquierda, sobre la botonera, y SOLO en modo edición.
+     La librería ya lo desvanece (opacity 0) cuando no hay nada que deshacer. */
+  .f3-history-controls {
+    display: none;
+    position: fixed; left: 20px; bottom: 70px; z-index: 30;
+    align-items: center; gap: 2px; padding: 5px 8px;
+    background: var(--bg); border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+  body.editando .f3-history-controls { display: inline-flex; }
+  .f3-history-controls .f3-back-button,
+  .f3-history-controls .f3-forward-button { color: var(--line); margin: 0; }
+
+  /* ── Buscador de personas (arriba, centrado): lupa que despliega el campo ──
+     Discreto (solo la lupa) hasta que se pulsa; entonces despliega el input y,
+     al escribir, una lista de coincidencias. Disponible en lectura y edición.
+     Centrado arriba: no choca con el título (izq), la botonera (abajo-izq) ni
+     el formulario de edición (der). */
+  .buscador { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 40; width: max-content; }
+  /* Fila superior: botón "Ver todo el árbol" + pastilla del buscador, centrados. */
+  .buscador-controles { display: flex; align-items: center; gap: 8px; justify-content: center; }
+  .buscador-vertodo {
+    width: 46px; height: 46px; flex-shrink: 0;
+    background: var(--bg); border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14);
+    color: var(--line); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s, border-color .2s;
+  }
+  .buscador-vertodo svg { width: 20px; height: 20px; fill: currentColor; }
+  .buscador-vertodo:hover { background: rgba(128, 128, 128, 0.15); }
+
+  /* ── Controles rápidos de VISTA (popover personal/temporal) ────────────────
+     Mismo botón cuadrado que "Volver al inicio"; despliega un popover con
+     orientación y profundidad. Ajustes de sesión, no se guardan en la BD. */
+  .buscador-vista-wrap { position: relative; display: flex; }
+  #btnVista.activo { background: rgba(128, 128, 128, 0.18); border-color: rgba(128, 128, 128, 0.75); }
+  .vista-popover {
+    position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+    z-index: 45; width: 232px; max-width: calc(100vw - 24px); padding: 12px;
+    display: flex; flex-direction: column; gap: 12px;
+    background: var(--bg); border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+  .vista-popover[hidden] { display: none; }
+  .vista-grupo { display: flex; flex-direction: column; gap: 5px; }
+  .vista-lbl { font-size: 12px; font-weight: 600; color: var(--fg); opacity: .72; }
+  .vista-seg { display: flex; }
+  .vista-seg button {
+    flex: 1; font: inherit; font-size: 13px; padding: 8px 6px; cursor: pointer;
+    background: transparent; color: var(--fg); border: 1px solid rgba(128, 128, 128, 0.4);
+  }
+  .vista-seg button:first-child { border-radius: 8px 0 0 8px; }
+  .vista-seg button:last-child { border-radius: 0 8px 8px 0; border-left: none; }
+  .vista-seg button.activo { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .vista-grupo select {
+    font: inherit; font-size: 13px; padding: 7px 8px; border-radius: 8px;
+    background: var(--bg); color: var(--fg); border: 1px solid rgba(128, 128, 128, 0.4);
+  }
+  .vista-grupo select:focus, .vista-seg button:focus { outline: none; border-color: var(--accent); }
+  .vista-reset {
+    font: inherit; font-size: 13px; padding: 8px; cursor: pointer; margin-top: 2px;
+    background: rgba(128, 128, 128, 0.14); color: var(--fg);
+    border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 8px;
+  }
+  .vista-reset:hover { background: rgba(128, 128, 128, 0.24); }
+  .buscador-caja {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--bg); border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14); padding: 5px;
+    transition: background .25s, border-color .25s;
+  }
+  .buscador-lupa {
+    width: 36px; height: 36px; flex-shrink: 0; border: none; background: transparent;
+    color: var(--line); cursor: pointer; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .buscador-lupa svg { width: 20px; height: 20px; fill: currentColor; }
+  .buscador-lupa:hover { background: rgba(128, 128, 128, 0.15); }
+  .buscador-input {
+    width: 0; border: none; background: transparent; color: var(--fg);
+    font-size: 15px; outline: none; opacity: 0; padding: 0;
+    transition: width .22s ease, opacity .18s ease, padding .22s ease;
+  }
+  .buscador.abierto .buscador-input { width: 250px; padding: 4px 2px; opacity: 1; }
+  .buscador-input::placeholder { color: var(--fg); opacity: .45; }
+  .buscador-limpiar {
+    display: none; border: none; background: transparent; color: var(--line);
+    opacity: .6; cursor: pointer; font-size: 20px; line-height: 1;
+    width: 30px; height: 30px; border-radius: 6px; flex-shrink: 0;
+  }
+  .buscador.abierto .buscador-limpiar { display: inline-flex; align-items: center; justify-content: center; }
+  .buscador-limpiar:hover { opacity: 1; background: rgba(128, 128, 128, 0.15); }
+  /* Lista de resultados */
+  .buscador-resultados {
+    list-style: none; margin: 6px 0 0; padding: 6px; max-height: 320px; overflow-y: auto;
+    background: var(--bg); border: 1px solid rgba(128, 128, 128, 0.45); border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2); display: none;
+  }
+  .buscador-resultados.visible { display: block; }
+  .buscador-res { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 9px; cursor: pointer; }
+  .buscador-res:hover, .buscador-res.activo { background: rgba(128, 128, 128, 0.16); }
+  .buscador-res .br-circle {
+    width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; overflow: hidden;
+    background: var(--circle-bg) center / cover no-repeat; border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .buscador-res.male   .br-circle { border-color: var(--male); }
+  .buscador-res.female .br-circle { border-color: var(--female); }
+  .buscador-res .br-circle svg { width: 22px; height: 22px; }
+  .buscador-res.male   .br-circle svg { fill: var(--male); }
+  .buscador-res.female .br-circle svg { fill: var(--female); }
+  .buscador-res .br-circle img { width: 100%; height: 100%; object-fit: cover; }
+  .br-texto { display: flex; flex-direction: column; min-width: 0; }
+  .br-nombre { color: var(--fg); font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .br-datos { color: var(--fg); opacity: .6; font-size: 12px; }
+  .buscador-vacio { padding: 12px 10px; color: var(--fg); opacity: .55; font-size: 13px; text-align: center; }
+
+  /* Resaltado temporal de la tarjeta localizada al elegir un resultado:
+     un halo DORADO/ÁMBAR (neutro, no compite con el azul=hombre / rosa=mujer)
+     que aparece con dos latidos y se desvanece. Destaca en claro y oscuro. */
+  @keyframes pulso-localizado {
+    0%   { box-shadow: 0 0 0 5px rgba(245, 176, 32, 0.98), 0 0 22px 8px rgba(245, 176, 32, 0.70); }
+    18%  { box-shadow: 0 0 0 3px rgba(245, 176, 32, 0.50), 0 0 12px 4px rgba(245, 176, 32, 0.34); }
+    36%  { box-shadow: 0 0 0 5px rgba(245, 176, 32, 0.92), 0 0 22px 8px rgba(245, 176, 32, 0.64); }
+    100% { box-shadow: 0 0 0 0 rgba(245, 176, 32, 0); }
+  }
+  #FamilyChart .card.localizada .fc-circle { animation: pulso-localizado 2.6s ease-out 1; }
+
+  /* Halo PERSISTENTE al ENTRAR (login): mismo dorado/ámbar, con un pulso suave en
+     bucle. Se mantiene hasta la primera interacción (toque, rueda, tecla, o mover
+     el árbol), que lo retira (ver resaltarEntrada en app.js). */
+  @keyframes halo-entrada {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(245, 176, 32, 0.95), 0 0 20px 7px rgba(245, 176, 32, 0.55); }
+    50%      { box-shadow: 0 0 0 6px rgba(245, 176, 32, 0.75), 0 0 26px 10px rgba(245, 176, 32, 0.38); }
+  }
+  #FamilyChart .card.localizada-entrada .fc-circle { animation: halo-entrada 1.8s ease-in-out infinite; }
+
+  @media (max-width: 600px) {
+    .buscador.abierto .buscador-input { width: 46vw; }
+    .buscador-resultados { max-height: 60vh; }
+  }
+
+  /* ── Tarjeta de título (arriba a la izquierda) ───────────────────────────*/
+  .titlecard {
+    position: fixed; top: 20px; left: 20px; z-index: 30;
+    background: var(--title-bg); color: var(--title-fg);
+    border: 1px solid rgba(128, 128, 128, 0.25); border-radius: 14px;
+    padding: 16px 22px; max-width: 260px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25); transition: background .25s, color .25s;
+  }
+  .titlecard .leaf { width: 26px; height: 26px; display: block; margin: 0 auto 2px; }
+  .titlecard h1 { font-size: 18px; font-weight: 700; text-align: center; margin: 0; color: var(--title-fg); }
+  .titlecard p { font-size: 12px; font-style: italic; color: var(--title-sub); text-align: center; margin: 3px 0 0; }
+  /* En móvil y tablet (dispositivos de solo lectura) se oculta la tarjeta de título */
+  body.dispositivo-lectura .titlecard { display: none; }
+
+  /* ── Móvil / tablet = SOLO LECTURA (F3-A) ────────────────────────────────
+     En estos dispositivos no hay edición: se oculta "Editar árbol". Los demás
+     controles de edición ya son .solo-edicion (solo visibles en body.editando,
+     estado al que no se puede llegar aquí). */
+  body.dispositivo-lectura #btnEditar { display: none; }
+
+  /* Barra y buscador cómodos en pantallas pequeñas. */
+  @media (max-width: 600px) {
+    /* La barra ya va anclada izq+der por body.dispositivo-lectura; aquí solo
+       ajustamos la tipografía para móviles pequeños sin perder el alto táctil. */
+    .fab { font-size: 13px; }
+    .buscador.abierto .buscador-input { width: 52vw; }
+    .buscador-resultados { max-height: 62vh; }
+  }
+
+  /* Lápiz para editar el título (solo visible en modo edición) */
+  .titlecard .tc-editar {
+    position: absolute; top: 8px; right: 8px;
+    background: transparent; border: none; color: var(--title-fg);
+    opacity: .6; cursor: pointer; font-size: 15px; line-height: 1; padding: 4px; border-radius: 6px;
+  }
+  .titlecard .tc-editar:hover { opacity: 1; background: rgba(128, 128, 128, 0.2); }
+  /* Campos de edición del título/subtítulo, según el tema del cuadro */
+  .titlecard .tc-edit input {
+    display: block; width: 100%; margin: 4px 0; padding: 6px 8px;
+    background: rgba(128, 128, 128, 0.18); color: var(--title-fg);
+    border: 1px solid rgba(128, 128, 128, 0.4); border-radius: 6px; font-size: 13px;
+  }
+  .titlecard .tc-edit input::placeholder { color: var(--title-sub); }
+  .titlecard .tc-edit-btns { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+  .titlecard .tc-edit-btns button { border: none; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+  .titlecard #tcGuardar { background: var(--accent); color: #fff; }
+  .titlecard #tcGuardar:hover { background: var(--accent-hover); }
+  .titlecard #tcCancelar { background: rgba(128, 128, 128, 0.3); color: var(--title-fg); }
+
+  /* Ficha en modo lectura: valores legibles según el tema */
+  .f3-info-field-value { color: var(--text-color); border-bottom-color: rgba(128, 128, 128, 0.3); }
+
+  /* ── Diálogo de confirmación (borrar persona) ─────────────────────────────
+     Modal propio, acorde al tema. La librería no trae confirmación de borrado;
+     interceptamos su hook oficial setOnDelete y mostramos esto en su lugar. */
+  .dlg-overlay {
+    /* z-index por ENCIMA de todos los modales (papelera 2500, login 3000) para
+       que la confirmación se vea siempre limpia sobre lo que la abrió. */
+    position: fixed; inset: 0; z-index: 3500;
+    display: flex; align-items: center; justify-content: center; padding: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0; transition: opacity .15s ease;
+  }
+  .dlg-overlay.abierto { opacity: 1; }
+  .dlg-box {
+    width: 100%; max-width: 420px;
+    background: #fff; color: #2c2c2a;
+    border-radius: 18px; padding: 26px 26px 22px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+    transform: translateY(8px) scale(.98); transition: transform .15s ease;
+  }
+  .dlg-overlay.abierto .dlg-box { transform: none; }
+  body.dark .dlg-box { background: #26272b; color: #e8e6df; }
+  .dlg-icono {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+    background: rgba(214, 69, 69, 0.14);
+  }
+  .dlg-icono svg { width: 28px; height: 28px; fill: #d64545; }
+  .dlg-titulo { font-size: 19px; font-weight: 700; text-align: center; margin: 0 0 8px; line-height: 1.25; }
+  .dlg-texto { font-size: 14.5px; line-height: 1.5; text-align: center; margin: 0 auto; opacity: .9; }
+  .dlg-texto .dlg-nombre { font-weight: 700; opacity: 1; }
+  /* Aviso reforzado si hay descendencia */
+  .dlg-aviso {
+    margin-top: 16px; padding: 13px 15px; border-radius: 12px;
+    background: rgba(224, 149, 78, 0.12);
+    border: 1px solid rgba(224, 149, 78, 0.35);
+    font-size: 13.5px; line-height: 1.5; text-align: left;
+    display: flex; gap: 10px; align-items: flex-start;
+  }
+  .dlg-aviso svg { width: 20px; height: 20px; flex-shrink: 0; fill: #d98b2b; margin-top: 1px; }
+  body.dark .dlg-aviso { background: rgba(224, 149, 78, 0.16); }
+  .dlg-aviso strong { font-weight: 700; }
+  .dlg-botones { display: flex; gap: 10px; margin-top: 22px; }
+  .dlg-botones button {
+    flex: 1; padding: 11px 14px; border-radius: 11px; font-size: 14.5px; font-weight: 600;
+    cursor: pointer; border: none; transition: filter .12s, background .12s;
+  }
+  .dlg-cancelar { background: rgba(128, 128, 128, 0.16); color: inherit; }
+  .dlg-cancelar:hover { background: rgba(128, 128, 128, 0.28); }
+  .dlg-eliminar { background: #d64545; color: #fff; }
+  .dlg-eliminar:hover { filter: brightness(1.07); }
+  /* Botones bloqueados mientras se procesa la acción (anti-doble-disparo). */
+  .dlg-botones button:disabled { opacity: .6; cursor: default; filter: none; }
+  .dlg-eliminar.procesando { opacity: .8; }
+  /* Botones de acción de la papelera bloqueados durante su operación. */
+  .papelera-acciones button:disabled { opacity: .5; cursor: default; }
+  @media (max-width: 600px) {
+    .dlg-box { max-width: 100%; }
+    .dlg-botones { flex-direction: column-reverse; }
+  }
+
+  /* ── Panel de administración (modal con pestañas) ─────────────────────────
+     Mismo lenguaje visual que papelera/copias. z-index 2400: POR DEBAJO de esos
+     modales (2500), que se abren desde el bloque «Datos» y deben quedar encima;
+     y por debajo del diálogo de confirmación (3500). */
+  .admin-overlay {
+    position: fixed; inset: 0; z-index: 2400; display: flex; align-items: center;
+    justify-content: center; background: rgba(0,0,0,.45); padding: 1rem;
+  }
+  .admin-overlay[hidden] { display: none; }
+  .admin-caja {
+    /* Altura FIJA y estable: el marco no salta al cambiar de pestaña; cada pestaña
+       se ajusta dentro y hace scroll interno si necesita más espacio. En pantallas
+       bajas se limita al alto disponible (88vh). */
+    width: 100%; max-width: 760px; height: min(640px, 88vh); display: flex; flex-direction: column;
+    background: #fff; color: #23262b; border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.28); overflow: hidden;
+  }
+  body.dark .admin-caja { background: #2a2b2f; color: #e7e7ea; }
+  .admin-cab {
+    display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+    padding: 1rem 1.2rem; border-bottom: 1px solid #eceae4;
+  }
+  body.dark .admin-cab { border-color: #3a3b40; }
+  .admin-cab h2 { margin: 0; font-size: 1.15rem; }
+  .admin-cerrar { font-size: 1.4rem; line-height: 1; background: none; border: none; cursor: pointer; color: inherit; opacity: .6; padding: 0 .2rem; }
+  .admin-cerrar:hover { opacity: 1; }
+  .admin-cuerpo { display: flex; min-height: 0; flex: 1 1 auto; }
+
+  /* Pestañas laterales */
+  .admin-nav {
+    flex: 0 0 190px; display: flex; flex-direction: column; gap: 2px;
+    padding: .8rem .6rem; border-right: 1px solid #eceae4; overflow-y: auto;
+  }
+  body.dark .admin-nav { border-color: #3a3b40; }
+  .admin-nav button {
+    text-align: left; font: inherit; font-size: .92rem; color: inherit;
+    background: transparent; border: none; border-radius: 9px; padding: .6rem .8rem; cursor: pointer;
+  }
+  .admin-nav button:hover { background: rgba(128,128,128,.14); }
+  .admin-nav button.activo { background: var(--accent); color: #fff; font-weight: 600; }
+
+  /* Contenido */
+  .admin-cont { flex: 1 1 auto; overflow-y: auto; padding: 1.1rem 1.3rem 1.5rem; min-width: 0; }
+  .admin-pane { display: none; }
+  .admin-pane.activo { display: block; }
+  .admin-h3 { font-size: .95rem; margin: 1.2rem 0 .6rem; padding-bottom: .3rem; border-bottom: 1px solid rgba(128,128,128,.18); }
+  .admin-pane .admin-h3:first-child { margin-top: 0; }
+  .admin-desc { font-size: .85rem; opacity: .72; line-height: 1.5; margin: 0 0 .7rem; }
+
+  .admin-campo { display: flex; flex-direction: column; gap: .25rem; margin-bottom: .7rem; }
+  .admin-campo label { font-size: .78rem; font-weight: 600; opacity: .7; }
+  .admin-campo input, .admin-campo select {
+    font: inherit; padding: .5rem .6rem; border-radius: 8px;
+    border: 1px solid rgba(128,128,128,.4); background: #fff; color: inherit;
+  }
+  body.dark .admin-campo input, body.dark .admin-campo select { background: #1f2024; border-color: #44464c; }
+  .admin-campo input:focus, .admin-campo select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+  .admin-doscol { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+
+  .admin-radios { display: flex; gap: 1.2rem; margin: .3rem 0 .5rem; }
+  .admin-radios label { display: flex; align-items: center; gap: .4rem; font-size: .9rem; cursor: pointer; }
+
+  .admin-acciones { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin-top: .6rem; }
+  .admin-btn, .admin-btn-primario, .admin-btn-peligro {
+    font: inherit; font-size: .86rem; padding: .5rem .9rem; border-radius: 8px; cursor: pointer; border: 1px solid transparent;
+  }
+  .admin-btn-primario { background: var(--accent); color: #fff; }
+  .admin-btn-primario:hover { background: var(--accent-hover); }
+  .admin-btn { background: rgba(128,128,128,.14); color: inherit; border-color: rgba(128,128,128,.3); }
+  .admin-btn:hover { background: rgba(128,128,128,.24); }
+  .admin-btn-peligro { background: transparent; color: #cf222e; border-color: #cf222e; }
+  body.dark .admin-btn-peligro { color: #ff6b61; border-color: #ff6b61; }
+  .admin-btn-primario:disabled, .admin-btn:disabled, .admin-btn-peligro:disabled { opacity: .5; cursor: default; filter: none; }
+  .admin-grid-btns { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .3rem; }
+
+  .admin-estado { font-size: .82rem; opacity: .85; }
+  .admin-estado.ok { color: #1a7f37; opacity: 1; }
+  .admin-estado.err { color: #cf222e; opacity: 1; }
+  body.dark .admin-estado.ok { color: #4ac26b; }
+  body.dark .admin-estado.err { color: #ff6b61; }
+
+  /* Estado del control de acceso */
+  .admin-acceso-estado { display: flex; align-items: center; gap: .5rem; font-size: .88rem; margin-bottom: .8rem; flex-wrap: wrap; }
+  .admin-pill { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; padding: .18rem .5rem; border-radius: 20px; }
+  .admin-pill.on { background: rgba(46,160,67,.16); color: #1a7f37; }
+  .admin-pill.off { background: rgba(224,149,78,.18); color: #b06a1e; }
+  body.dark .admin-pill.on { color: #4ac26b; }
+  body.dark .admin-pill.off { color: #e2a663; }
+
+  /* Personas sin nombre */
+  .admin-sinnombre { margin-top: .8rem; display: flex; flex-direction: column; gap: .5rem; }
+  .admin-sn-item {
+    display: flex; align-items: flex-start; gap: .7rem; padding: .6rem;
+    border: 1px solid rgba(128,128,128,.2); border-radius: 10px;
+  }
+  .admin-sn-circ {
+    flex: 0 0 auto; width: 40px; height: 40px; border-radius: 50%; overflow: hidden;
+    background: var(--circle-bg, #e6e3da); display: flex; align-items: center; justify-content: center;
+    border: 2px solid var(--male);
+  }
+  .admin-sn-item.female .admin-sn-circ { border-color: var(--female); }
+  .admin-sn-circ img { width: 100%; height: 100%; object-fit: cover; }
+  .admin-sn-circ svg { width: 60%; height: 60%; fill: #9a9a9a; }
+  .admin-sn-campos { flex: 1 1 auto; min-width: 0; }
+  .admin-sn-meta { font-size: .76rem; opacity: .6; margin-bottom: .35rem; }
+  .admin-sn-inputs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .4rem; }
+  .admin-sn-inputs input {
+    font: inherit; font-size: .84rem; padding: .4rem .5rem; border-radius: 7px;
+    border: 1px solid rgba(128,128,128,.4); background: #fff; color: inherit; min-width: 0;
+  }
+  body.dark .admin-sn-inputs input { background: #1f2024; border-color: #44464c; }
+  .admin-sn-acciones { flex: 0 0 auto; display: flex; flex-direction: column; gap: .35rem; }
+  .admin-sn-acciones button { font-size: .78rem; padding: .4rem .6rem; white-space: nowrap; }
+
+  /* Sistema: comprobaciones */
+  .admin-req { display: flex; align-items: flex-start; gap: .6rem; padding: .5rem .1rem; border-top: 1px solid rgba(128,128,128,.14); }
+  .admin-req:first-of-type { border-top: none; }
+  .admin-req > div { display: flex; flex-direction: column; }
+  .admin-req strong { font-size: .88rem; }
+  .admin-req span { font-size: .8rem; opacity: .72; word-break: break-word; }
+  .admin-check { font-weight: 700; line-height: 1.4; }
+  .admin-check.ok { color: #2ea043; }
+  .admin-check.mal { color: #cf222e; }
+
+  /* Responsive: pestañas arriba en horizontal, contenido debajo */
+  @media (max-width: 640px) {
+    .admin-caja { max-height: 92vh; }
+    .admin-cuerpo { flex-direction: column; }
+    .admin-nav { flex: 0 0 auto; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid #eceae4; }
+    body.dark .admin-nav { border-color: #3a3b40; }
+    .admin-nav button { white-space: nowrap; }
+    .admin-doscol, .admin-sn-inputs { grid-template-columns: 1fr; }
+    .admin-sn-item { flex-wrap: wrap; }
+    .admin-sn-acciones { flex-direction: row; width: 100%; justify-content: flex-end; }
+  }

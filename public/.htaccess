@@ -1,0 +1,35 @@
+# ── public/.htaccess — cabeceras de seguridad para TODO (incl. estáticos) ──────
+# La app (PHP) ya emite estas cabeceras y la CSP para las páginas dinámicas; aquí
+# se aseguran también para los archivos ESTÁTICOS (CSS/JS/imágenes) que sirve
+# Apache directamente. La CSP NO se pone aquí (es específica de cada página HTML y
+# la fija el PHP): así no hay dos CSP compitiendo.
+<IfModule mod_headers.c>
+    # 'set' (no 'always') REEMPLAZA: en las páginas PHP —que ya emiten estas
+    # cabeceras— evita que salgan duplicadas; en los estáticos (sin PHP) las añade.
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+    # HSTS solo bajo HTTPS real (no se emite en http local).
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains" "expr=%{HTTPS} == 'on'"
+</IfModule>
+
+# ── Páginas de error personalizadas (marca Linaje) ───────────────────────────
+# Solo para NAVEGACIÓN HUMANA: Apache las sirve cuando el error NO trae cuerpo
+# propio (URL inexistente, acceso denegado, fallo del servidor sin salida). Los
+# endpoints de api/ y salud.php responden su PROPIO JSON con cuerpo, así que
+# ErrorDocument NO los reemplaza (se verifica en el backtest). Son estáticas y
+# autónomas (CSS y logo en línea): cargan aunque el resto falle.
+ErrorDocument 404 /error/404.html
+ErrorDocument 403 /error/403.html
+ErrorDocument 500 /error/500.html
+
+# No servir archivos ocultos (.htaccess, .git, etc.) ni copias/temporales.
+<FilesMatch "(^\.|~$|\.(bak|dump|sql|log)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

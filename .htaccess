@@ -1,0 +1,24 @@
+# ── .htaccess raíz — defensa en profundidad del despliegue ────────────────────
+# El document root DEBE apuntar a public/. Si por un despliegue mal configurado
+# apuntara a la RAÍZ del proyecto, este archivo impide que se sirvan por web las
+# carpetas sensibles (código fuente, configuración con credenciales, almacén de
+# fotos/copias/logs, esquema y documentación). En el despliegue correcto (docroot
+# = public/) este archivo ni se consulta.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(?:config|src|almacen|db|docs)(?:/|$) - [F,L]
+</IfModule>
+<IfModule !mod_rewrite.c>
+    RedirectMatch 403 ^/(?:config|src|almacen|db|docs)(?:/|$)
+</IfModule>
+
+# Archivos ocultos y sensibles: nunca por web.
+<FilesMatch "(^\.|~$|\.(bak|dump|sql|log|example\.php)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>

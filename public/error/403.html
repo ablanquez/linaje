@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>403 · Acceso no permitido · Linaje</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg:#f4f2ec; --card:#fff; --bd:rgba(128,128,128,.2); --fg:#23262b; --mut:#6b6f76;
+    --accent:#0f857d; --accent-hover:#0b6b64; --codigo:rgba(15,133,125,.16);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#191b1f; --card:#2a2b2f; --bd:rgba(128,128,128,.28); --fg:#e7e7ea; --mut:#a2a5ab;
+      --accent:#16a093; --accent-hover:#1cb7a8; --codigo:rgba(22,160,147,.22);
+    }
+  }
+  html,body{height:100%}
+  body{
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    background:var(--bg); color:var(--fg);
+    display:flex; align-items:center; justify-content:center;
+    min-height:100vh; padding:24px; line-height:1.5;
+  }
+  .card{
+    width:100%; max-width:440px; background:var(--card);
+    border:1px solid var(--bd); border-radius:16px;
+    padding:38px 32px 34px; text-align:center;
+    box-shadow:0 12px 40px rgba(0,0,0,.10);
+  }
+  .marca{display:flex; align-items:center; justify-content:center; gap:9px; margin-bottom:18px}
+  .logo{width:34px; height:34px; display:block}
+  .marca span{font-weight:700; font-size:1.05rem; letter-spacing:.01em}
+  .codigo{font-size:64px; font-weight:800; color:var(--codigo); line-height:1; letter-spacing:.02em; margin:2px 0 10px}
+  h1{font-size:1.35rem; margin:0 0 .5rem}
+  p{color:var(--mut); font-size:.96rem; margin:0 auto 1.5rem; max-width:34ch}
+  .btn{
+    display:inline-block; text-decoration:none; font-weight:600; font-size:.96rem;
+    padding:.7rem 1.4rem; border-radius:10px;
+    background:var(--accent); color:#fff; transition:background .15s;
+  }
+  .btn:hover{background:var(--accent-hover)}
+  @media (max-width:380px){ .card{padding:30px 20px 26px} .codigo{font-size:52px} }
+</style>
+</head>
+<body>
+  <main class="card">
+    <div class="marca"><svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Linaje"><line x1="32" y1="10.5" x2="18" y2="31.5" stroke="#0f857d" stroke-width="3.1" stroke-linecap="round" opacity="0.62"/><line x1="32" y1="10.5" x2="46" y2="31.5" stroke="#0f857d" stroke-width="3.1" stroke-linecap="round" opacity="0.62"/><line x1="18" y1="31.5" x2="9.5" y2="53.5" stroke="#0f857d" stroke-width="3.1" stroke-linecap="round" opacity="0.62"/><line x1="18" y1="31.5" x2="24.5" y2="53.5" stroke="#0f857d" stroke-width="3.1" stroke-linecap="round" opacity="0.62"/><line x1="46" y1="31.5" x2="39.5" y2="53.5" stroke="#0f857d" stroke-width="3.1" stroke-linecap="round" opacity="0.62"/><line x1="46" y1="31.5" x2="54.5" y2="53.5" stroke="#0f857d" stroke-width="3.1" stroke-linecap="round" opacity="0.62"/><circle cx="18" cy="31.5" r="5.6" fill="#0f857d"/><circle cx="46" cy="31.5" r="5.6" fill="#0f857d"/><circle cx="9.5" cy="53.5" r="5" fill="#16a093"/><circle cx="24.5" cy="53.5" r="5" fill="#16a093"/><circle cx="39.5" cy="53.5" r="5" fill="#16a093"/><circle cx="54.5" cy="53.5" r="5" fill="#16a093"/><circle cx="32" cy="10.5" r="6" fill="#0b6b64"/></svg><span>Linaje</span></div>
+    <div class="codigo">403</div>
+    <h1>Acceso no permitido</h1>
+    <p>No tienes permiso para ver esta página. Si crees que es un error, vuelve al inicio e inicia sesión.</p>
+    <a class="btn" href="/">Volver al inicio</a>
+  </main>
+</body>
+</html>

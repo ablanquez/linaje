@@ -1,0 +1,70 @@
+# ── .gitignore del proyecto ──────────────────────────────────────────────
+# Objetivo: NO subir a GitHub configuración local ni datos/credenciales
+# sensibles. (Git aún no se usa aquí; esto queda preparado para cuando se use.)
+
+# Configuración LOCAL de Claude Code (personal de esta máquina, no compartir)
+.claude/settings.local.json
+
+# Credenciales y configuración sensible (fase de backend PHP + base de datos)
+# NUNCA subir claves reales de conexión a la BD ni las claves LECTURA/EDICIÓN.
+.env
+.env.*
+config.local.php
+secrets.php
+# Todo lo de config/ es SENSIBLE por defecto (lista blanca): SOLO se versionan la
+# PLANTILLA y el .htaccess de defensa. Quedan FUERA siempre: el config real
+# (config/config.php), los respaldos (*.bak) y cualquier copia de swap
+# (config/config.php.*) — contienen credenciales de BD y hashes de claves.
+config/*
+!config/config.example.php
+!config/.htaccess
+
+# Datos reales de la familia y copias de seguridad de la BD (no publicar).
+# (La ruta real de copias es /almacen/backups/, cubierta más abajo; se retira la
+#  regla /backups/ que no coincidía con ninguna carpeta real — HIG-04.)
+*.bak
+*.dump
+datos-reales/
+# Código muerto / versiones antiguas (p. ej. index.viejo.html) — no publicar (HIG-02).
+*.viejo.*
+# Fotos subidas (archivos reales de personas). Se conservan la carpeta (.gitkeep) y
+# su .htaccess de defensa (esos SÍ se versionan; las imágenes reales NO).
+/almacen/fotos/*
+!/almacen/fotos/.gitkeep
+!/almacen/fotos/.htaccess
+# Copias de seguridad generadas (contienen datos reales). Carpeta con .gitkeep.
+/almacen/backups/*
+!/almacen/backups/.gitkeep
+# Freno anti-fuerza-bruta por IP (SEC-04) y logs de error (SEC-05): estado local en
+# disco, NUNCA se publica. Se conservan las carpetas con .gitkeep.
+/almacen/ratelimit/*
+!/almacen/ratelimit/.gitkeep
+/almacen/logs/*
+!/almacen/logs/.gitkeep
+
+# Archivos del sistema operativo
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+*.swp
+*~
+
+# ── Documentos internos de trabajo (NO publicar) ──────────────────────────
+# Decisión: el repo público va limpio. Estos .md son notas de trabajo/planificación
+# y SIGUEN EXISTIENDO en disco local; solo quedan FUERA del repositorio.
+# (Se listan de forma explícita y anclada a la raíz con "/" para NO ignorar por
+#  error los públicos: README.md, CHANGELOG.md, THIRD-PARTY-NOTICES.md, NOTICE.)
+/CLAUDE.md
+/ESTADO.md
+/ESTADO-Y-DECISIONES.md
+/PENDIENTES.md
+/NOTAS-LIBRERIA.md
+
+# docs/: son internos de planificación/QA TODOS los .md sueltos de esta carpeta
+# (PLAN-BACKEND, PLAN-QA-SEGURIDAD, BACKTEST-FINAL, AUDITORIA-DUPLICACION,
+#  DESPLIEGUE-Y-SEGURIDAD, MULTI-ARBOL, y cualquier .md futuro que se deje aquí).
+# NO afecta a docs/capturas/ (imágenes del README) porque es una subcarpeta.
+/docs/*.md

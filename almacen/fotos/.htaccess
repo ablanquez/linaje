@@ -1,0 +1,28 @@
+# Defensa en profundidad para la carpeta de fotos (SEC / H1).
+# 1) Nada de acceso web directo a los archivos originales (el portero es public/foto.php).
+# 2) Y si el document root se desplegara mal, aquí NO se ejecuta ningún script.
+
+# Apache 2.4
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+# Apache 2.2 (respaldo)
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+
+# Motor de PHP DESACTIVADO en esta carpeta (por si acaso).
+<IfModule mod_php.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php7.c>
+    php_admin_flag engine off
+</IfModule>
+<IfModule mod_php8.c>
+    php_admin_flag engine off
+</IfModule>
+
+# Quitar cualquier manejador que pudiera ejecutar código.
+RemoveHandler .php .phtml .php3 .php4 .php5 .php7 .php8 .pht .phar
+AddType text/plain .php .phtml .phar

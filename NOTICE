@@ -1,0 +1,21 @@
+Linaje
+Copyright 2026 Antonio Blánquez Cabeza
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this software except in compliance with the License. You may obtain a
+copy of the License in the accompanying LICENSE file or at:
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+-------------------------------------------------------------------------------
+
+This product bundles third-party components in public/assets/vendor/ under
+their own permissive licenses (MIT and ISC), which are compatible with the
+Apache License 2.0. Their copyright and license notices are reproduced, as
+those licenses require, in the file:
+
+    THIRD-PARTY-NOTICES.md

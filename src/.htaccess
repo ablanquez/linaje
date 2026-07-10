@@ -1,0 +1,10 @@
+# Carpeta NO pública: prohibido el acceso web directo (defensa en profundidad,
+# por si el document root se despliega mal y apunta a la raíz del proyecto en vez
+# de a public/). El backend accede a estos archivos por RUTA de disco, no por URL.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
