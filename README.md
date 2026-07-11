@@ -14,7 +14,19 @@
 
 </div>
 
-> 🔗 **Demo en vivo:** _(próximamente — se añadirá aquí tras el despliegue)_
+<div align="center">
+
+### 🌳 Ver la demo en vivo → **[linaje.antonioblanquez.es](https://linaje.antonioblanquez.es)**
+
+</div>
+
+> **Explórala sin instalar nada.** Es el árbol de la familia **«Gil»** —personas y fotos
+> **ficticias**, generadas por IA—, abierto en **modo lectura sin registro**. ¿Quieres
+> probar la **edición y el panel de administración**? Entra con la clave de demo
+> **`editar1234`**.
+>
+> 🔄 **Trastea sin miedo:** la demo **se restablece sola cada hora**, así que cualquier
+> cambio que hagas se borra automáticamente (es a propósito, no es un fallo).
 
 ---
 
@@ -31,6 +43,9 @@ elijas), calcula **automáticamente el parentesco** de cada familiar, permite
 garantizada, papelera, copias de seguridad y exportación**. Toda la administración
 —incluido el acceso público o privado— se hace desde un **panel integrado**, y la
 puesta en marcha es un **instalador guiado** de un par de minutos.
+
+¿Prefieres verlo antes de instalarlo? Echa un vistazo a la
+**[demo en vivo](https://linaje.antonioblanquez.es)**.
 
 <div align="center">
 <img src="docs/capturas/arbol-claro.png" width="90%" alt="El árbol genealógico de la familia de demostración en Linaje">
@@ -208,7 +223,7 @@ sea fácil de entender, desplegar y mantener en cualquier hosting compartido.
 | **Frontend** | **JavaScript vanilla** (ES, sin *build step*) |
 | **Visualización** | [D3.js](https://d3js.org/) + [family-chart](https://donatso.github.io/family-chart/) |
 | **Exportación** | [jsPDF](https://github.com/parallax/jsPDF), [html-to-image](https://github.com/bubkoo/html-to-image) |
-| **Servidor** | Apache (con `.htaccess`); pensado para hosting tipo Hostinger |
+| **Servidor** | Apache o LiteSpeed (compatibles con `.htaccess`); pensado para hosting tipo Hostinger |
 
 **Arquitectura** (resumen):
 
@@ -234,8 +249,8 @@ configuración (`config/`) y los datos (`almacen/`) **nunca son accesibles por w
 
 - **PHP 8.0 o superior** (probado en 8.3) con las extensiones `pdo_mysql` y `gd`.
 - **MySQL** o **MariaDB**.
-- **Apache** con `mod_rewrite` y `AllowOverride All` (o un servidor equivalente que
-  respete los `.htaccess`).
+- **Apache** o **LiteSpeed** con `mod_rewrite` y `AllowOverride All` (o un servidor
+  equivalente que respete los `.htaccess`).
 - Permisos de escritura en las carpetas `config/` y `almacen/`.
 
 ### Pasos
@@ -268,6 +283,14 @@ configuración (`config/`) y los datos (`almacen/`) **nunca son accesibles por w
 > 💡 En **hosting compartido** (p. ej. Hostinger) el proceso es el mismo: sube los
 > archivos, haz que el dominio apunte a `public/`, crea la base de datos desde el
 > panel y abre la web para lanzar el instalador.
+>
+> Si tu hosting **no permite cambiar el _document root_** (es el caso de Hostinger, que
+> lo fija en `public_html/`), coloca el proyecto **fuera** de `public_html` y sustituye
+> esa carpeta por un **enlace simbólico** a `public/`:
+> ```bash
+> ln -s /home/USUARIO/ruta/al/proyecto/public public_html
+> ```
+> Así el resto del código (`src/`, `config/`, `almacen/`) sigue **fuera** del alcance web.
 
 ---
 
@@ -285,8 +308,12 @@ configuración (`config/`) y los datos (`almacen/`) **nunca son accesibles por w
 
 ## Hoja de ruta
 
-Linaje es un **proyecto vivo**. Estas son algunas de las mejoras previstas (planes,
-sin fechas comprometidas):
+Linaje es un **proyecto vivo**.
+
+✅ **Ya disponible:** demo pública en vivo, instalador guiado, copias de seguridad y
+exportación completas, y control de acceso público/privado (privado o abierto).
+
+Estas son algunas de las **mejoras previstas** (planes, sin fechas comprometidas):
 
 - **Ayuda integrada**: guía de uso y ayuda contextual dentro de la propia aplicación.
 - **Cuentas de usuario por persona**: acceso individual para cada familiar, con
@@ -294,7 +321,7 @@ sin fechas comprometidas):
 - **Actualización asistida**: actualizar la aplicación —al estilo WordPress— sin
   perder datos.
 - **Soporte multi-árbol**: gestionar varias familias en una misma instalación.
-- **Mejora continua** de la calidad del código.
+- **Tanda de mejoras de calidad**: revisión de código, rendimiento y accesibilidad.
 
 ---
 
