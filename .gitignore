@@ -68,3 +68,6 @@ desktop.ini
 #  DESPLIEGUE-Y-SEGURIDAD, MULTI-ARBOL, y cualquier .md futuro que se deje aquí).
 # NO afecta a docs/capturas/ (imágenes del README) porque es una subcarpeta.
 /docs/*.md
+
+# La bitácora de fallos SÍ entra: es material del proyecto.
+!docs/BITACORA.md
